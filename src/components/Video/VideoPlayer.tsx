@@ -23,6 +23,8 @@ const VideoPlayer: React.FC = () => {
 
       try {
         const blob = await videoService.getProcessedVideo(id, 'video');
+
+        console.log("BLOBLLLL::::::", blob)
         
         if (!mounted) return;
 

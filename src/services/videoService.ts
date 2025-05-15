@@ -17,14 +17,6 @@ export const videoService = {
       console.error('[Validation Error] No file provided for upload');
       throw new Error('No file provided for upload');
     }
-
-    const token = localStorage.getItem('token');
-    console.log('[Token Check] Retrieved token', { token: token ? 'Present' : 'Missing' });
-    if (!token) {
-      console.error('[Auth Error] No token found in localStorage');
-      throw new Error('No token found in localStorage');
-    }
-
     console.log('[Base URL Check]', { baseURL: api.defaults.baseURL });
     if (!api.defaults.baseURL) {
       console.error('[Config Error] baseURL is not configured in axios instance');
@@ -38,8 +30,7 @@ export const videoService = {
       const response = await api.post('/videos/upload', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
-          'Authorization': `Bearer ${token}`
-        },
+        },  
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total && progressEvent.total > 0) {
             const progress = Math.min(99, Math.round((progressEvent.loaded * 100) / progressEvent.total));
@@ -115,12 +106,7 @@ export const videoService = {
       throw new Error('No video ID provided');
     }
 
-    const token = localStorage.getItem('token');
-    console.log('[Token Check] Retrieved token', { token: token ? token : 'Missing' });
-    if (!token) {
-      console.error('[Auth Error] No token found in localStorage');
-      throw new Error('No token found in localStorage');
-    }
+    
 
     console.log('[Base URL Check]', { baseURL: api.defaults.baseURL });
     if (!api.defaults.baseURL) {
@@ -132,11 +118,11 @@ export const videoService = {
       console.log('[API] Sending GET request to', { fullUrl });
       const response = await api.get(endpoint, {
         responseType: 'blob',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
+        
         timeout: 300000
       });
+
+      console.log("RESPONMSESESESE: " , response)
 
       if (!(response.data instanceof Blob)) {
         console.error('[Response Error] Expected Blob, but received:', response.data);
@@ -206,18 +192,9 @@ export const videoService = {
       throw new Error('No video ID provided');
     }
 
-    const token = localStorage.getItem('token');
-    console.log('[Token Check] Retrieved token', { token: token ? 'Present' : 'Missing' });
-    if (!token) {
-      console.error('[Auth Error] No token found in localStorage');
-      throw new Error('No token found in localStorage');
-    }
-
     try {
       const response = await api.get<Detection[]>(`/videos/${id}/report`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+       
       });
 
       console.log('[API] Report received', {

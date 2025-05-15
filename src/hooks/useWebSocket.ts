@@ -1,85 +1,60 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { videoService } from '../services/videoService';
+import { Detection } from '../types';
 
 const WS_URL = import.meta.env.VITE_WS_URL || 'ws://localhost:3000/ws';
 
 export const useWebSocket = (videoId: string, onComplete?: () => void) => {
+  const [isComplete, setIsComplete] = useState(false);
+  const [processedVideoUrl, setProcessedVideoUrl] = useState<string | null>(null);
+  const [reportRes, setReport] = useState<Detection[] | null>(null)
+  const [reportUrl, setReportUrl] = useState<string | null>(null)
   const wsRef = useRef<WebSocket | null>(null);
-  const isProcessingComplete = useRef(false);
-  const processedVideoUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!videoId || isProcessingComplete.current || wsRef.current) {
-      console.log('WebSocket initialization skipped:', {
-        videoId,
-        isComplete: isProcessingComplete.current,
-        hasExistingConnection: !!wsRef.current
-      });
-      return;
-    }
-
-    console.log('Initializing WebSocket connection for video:', videoId);
+    if (!videoId || isComplete  || wsRef.current) return;
     const ws = new WebSocket(`${WS_URL}?videoId=${videoId}`);
     wsRef.current = ws;
 
-    ws.onopen = () => {
-      console.log('WebSocket connection established');
-    };
+    ws.addEventListener('message', async ({ data }) => {
+      const { status, message } = JSON.parse(data);
+      if ((status === 'completed' || message === 'complete.') && !isComplete) {
+        setIsComplete(true);
+        // small delay if you need
+        await new Promise(r => setTimeout(r, 500));
+        try {
+          const blob = await videoService.getProcessedVideo(videoId, 'video');
+          const url = URL.createObjectURL(blob);
+          setProcessedVideoUrl(url);
+          const report = await videoService.getVideoReport(videoId)
+          setReport(report)
+          const jsonString = JSON.stringify(report.detection_json, null, 2);
 
-    ws.onmessage = async (event) => {
-      console.log('WebSocket message received:', event.data);
-      try {
-        const data = JSON.parse(event.data);
-        
-        if ((data.status === 'completed' || data.message === 'complete.') && !isProcessingComplete.current) {
-          console.log('Processing completed, fetching video...');
-          isProcessingComplete.current = true;
-
-          try {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            const blob = await videoService.getProcessedVideo(videoId, 'video');
-            processedVideoUrlRef.current = URL.createObjectURL(blob);
-            console.log('Video blob URL created:', processedVideoUrlRef.current);
-            toast.success('Video processing complete!');
-            onComplete?.();
-          } catch (error) {
-            console.error('Failed to fetch processed video:', error);
-            toast.error('Failed to load processed video');
-          }
-
+          const blobReport = new Blob([jsonString], { type: 'application/json' });
+          const urlReport = URL.createObjectURL(blobReport);
+          setReportUrl(urlReport)
+          toast.success('Video ready to preview!');
+          onComplete?.();
+        } catch {
+          toast.error('Failed to load video');
+        } finally {
           ws.close();
-          wsRef.current = null;
         }
-      } catch (error) {
-        console.error('Message parsing error:', error);
       }
-    };
+    });
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
-    };
-
-    ws.onclose = () => {
-      console.log('WebSocket connection closed');
-      wsRef.current = null;
-    };
+    ws.addEventListener('error', console.error);
+    ws.addEventListener('open', () => console.log('WS open'));
+    ws.addEventListener('close', () => console.log('WS closed'));
 
     return () => {
-      console.log('Cleaning up WebSocket connection');
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
-      if (processedVideoUrlRef.current) {
-        URL.revokeObjectURL(processedVideoUrlRef.current);
-        processedVideoUrlRef.current = null;
+      ws.close();
+      if (processedVideoUrl) {
+        URL.revokeObjectURL(processedVideoUrl);
       }
     };
-  }, [videoId, onComplete]);
+  }, [videoId, isComplete, onComplete, processedVideoUrl]);
 
-  return {
-    isComplete: isProcessingComplete.current,
-    processedVideoUrl: processedVideoUrlRef.current
-  };
+  return { isComplete, processedVideoUrl, reportUrl, reportRes };
 };

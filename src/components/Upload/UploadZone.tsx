@@ -17,11 +17,14 @@ const UploadZone: React.FC = () => {
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const { isComplete, processedVideoUrl } = useWebSocket(currentVideoId || '', () => {
+  const { isComplete, processedVideoUrl, reportUrl, reportRes } = useWebSocket(currentVideoId || '', () => {
     if (currentVideoId && processedVideoUrl) {
       navigate(`/${currentVideoId}/processed`);
     }
   });
+
+
+  console.log("YAYAYAYAYAYA:", reportRes)
   
 
 
@@ -186,12 +189,12 @@ const UploadZone: React.FC = () => {
 
           {(uploadState === 'uploading' || uploadState === 'processing') && (
             <div className="text-center">
-              <motion.div 
+              
+              {!isComplete && (<><motion.div 
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="animate-spin h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"
-              />
-              <h3 className="text-xl font-semibold mb-2">
+              /><h3 className="text-xl font-semibold mb-2">
                 {uploadState === 'uploading' ? 'Uploading Video' : 'Processing Video'}
               </h3>
               {uploadState === 'uploading' && (
@@ -208,15 +211,21 @@ const UploadZone: React.FC = () => {
                 {uploadState === 'uploading' 
                   ? `Uploading... ${uploadProgress}%`
                   : 'Running advanced threat detection...'}
-              </p>
-              {uploadState === 'processing' && isComplete && (
-                <motion.p 
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="text-sm text-success mt-2"
-                >
-                  Processing complete! Redirecting...
-                </motion.p>
+              </p></>)}
+              
+              {uploadState === 'processing' && isComplete && (<>
+                <video src={processedVideoUrl} controls width={650} height={350} />
+                {
+                  reportRes && <div className='flex mt-4 w-full flex-col items-start gap-2'>
+                    <div className='w-full flex items-center justify-between'>
+                      <h3>Report:</h3>
+                      <a download={true} href={reportUrl} className='text-[black] bg-white rounded-md p-1'>Download</a>
+                    </div>
+                    
+                    <p className='text-left'>{reportRes.detection_json}</p>
+                  </div>
+                }
+                </>
               )}
             </div>
           )}

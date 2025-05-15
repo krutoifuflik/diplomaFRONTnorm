@@ -23,6 +23,7 @@ export interface Detection {
   };
   confidence: number;
   description: string;
+  detection_json: string
   relatedDetections?: string[];
 }
 
