@@ -213,18 +213,34 @@ const UploadZone: React.FC = () => {
                   : 'Running advanced threat detection...'}
               </p></>)}
               
-              {uploadState === 'processing' && isComplete && (<>
-                <video src={processedVideoUrl} controls width={650} height={350} />
-                {
-                  reportRes && <div className='flex mt-4 w-full flex-col items-start gap-2'>
-                    <div className='w-full flex items-center justify-between'>
-                      <h3>Report:</h3>
-                      <a download={true} href={reportUrl} className='text-[black] bg-white rounded-md p-1'>Download</a>
+              {uploadState === 'processing' && isComplete && (
+                  <>
+                  <video src={processedVideoUrl} controls className="w-full max-w-3xl rounded shadow-lg mx-auto" />
+
+                  {reportRes && (
+                    <div className="mt-6 w-full bg-white dark:bg-dark-700 rounded-lg p-4 shadow flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Detection Report</h3>
+                        <a
+                          download
+                          href={reportUrl}
+                          className="bg-primary-500 text-white px-4 py-1.5 rounded hover:bg-primary-600 transition-colors text-sm font-medium"
+                        >
+                          Download Report
+                        </a>
+                      </div>
+
+                      <div className="w-full overflow-x-auto bg-gray-50 dark:bg-dark-800 rounded p-3 border text-sm text-gray-700 dark:text-gray-200">
+                        <pre className="whitespace-pre-wrap break-words">
+                          <code>
+                            {typeof reportRes.detection_json === 'string'
+                              ? reportRes.detection_json
+                              : JSON.stringify(reportRes.detection_json, null, 2)}
+                          </code>
+                        </pre>
+                      </div>
                     </div>
-                    
-                    <p className='text-left'>{reportRes.detection_json}</p>
-                  </div>
-                }
+                  )}
                 </>
               )}
             </div>
