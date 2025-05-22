@@ -1,7 +1,6 @@
 import React from 'react';
 import { useVideoHistory } from '../../hooks/useVideoHistory';
-import { formatFileSize } from '../../utils/validation';
-import { Clock, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { Clock, AlertCircle, Loader } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { videoService } from '../../services/videoService';
 import { toast } from 'react-hot-toast';
@@ -77,11 +76,9 @@ const Sidebar: React.FC<SidebarProps> = ({ onVideoSelect }) => {
                     <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-500">
                       {video.title}
                     </h3>
-                    <div className="mt-1 flex items-center text-xs text-gray-500 dark:text-gray-400">
-                      <span>{new Date(video.uploadDate).toLocaleDateString()}</span>
-                      <span className="mx-1">•</span>
-                      <span>{formatFileSize(video.fileSize)}</span>
-                    </div>
+                    <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      {new Date(video.uploadDate).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
               </motion.button>
