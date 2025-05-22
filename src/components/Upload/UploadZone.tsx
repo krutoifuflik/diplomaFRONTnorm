@@ -18,12 +18,11 @@ const UploadZone: React.FC<UploadZoneProps> = ({ initialVideo, initialReport }) 
   const [uploadState, setUploadState] = useState<'idle' | 'validating' | 'uploading' | 'processing' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(initialVideo || null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
-  const [reportRes, setReportRes] = useState<any>(null);
   const navigate = useNavigate();
 
-  const { isComplete, processedVideoUrl, reportUrl, reportRes: wsReportRes } = useWebSocket(currentVideoId || '', () => {
+  const { isComplete, processedVideoUrl, reportUrl, reportRes } = useWebSocket(currentVideoId || '', () => {
     if (currentVideoId && processedVideoUrl) {
       navigate(`/${currentVideoId}/processed`);
     }
@@ -33,14 +32,9 @@ const UploadZone: React.FC<UploadZoneProps> = ({ initialVideo, initialReport }) 
     if (initialVideo && initialReport) {
       setPreviewUrl(initialVideo);
       setUploadState('processing');
-      setTimeout(() => {
-        setCurrentVideoId('loaded');
-        setReportRes(initialReport);
-      }, 500);
+      setSelectedFile(null);
     }
   }, [initialVideo, initialReport]);
-
-  console.log("YAYAYAYAYAYA:", reportRes);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -103,7 +97,7 @@ const UploadZone: React.FC<UploadZoneProps> = ({ initialVideo, initialReport }) 
   });
 
   const resetUpload = () => {
-    if (previewUrl) {
+    if (previewUrl && !initialVideo) {
       URL.revokeObjectURL(previewUrl);
     }
     setUploadState('idle');
@@ -203,35 +197,41 @@ const UploadZone: React.FC<UploadZoneProps> = ({ initialVideo, initialReport }) 
 
           {(uploadState === 'uploading' || uploadState === 'processing') && (
             <div className="text-center">
+              {!isComplete && !initialVideo && (<>
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="animate-spin h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"
+                />
+                <h3 className="text-xl font-semibold mb-2">
+                  {uploadState === 'uploading' ? 'Uploading Video' : 'Processing Video'}
+                </h3>
+                {uploadState === 'uploading' && (
+                  <div className="w-full bg-gray-200 dark:bg-dark-600 rounded-full h-2 mb-4">
+                    <motion.div 
+                      className="bg-primary-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                )}
+                <p className="text-gray-500 dark:text-gray-400">
+                  {uploadState === 'uploading' 
+                    ? `Uploading... ${uploadProgress}%`
+                    : 'Running advanced threat detection...'}
+                </p>
+              </>)}
               
-              {!isComplete && (<><motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="animate-spin h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"
-              /><h3 className="text-xl font-semibold mb-2">
-                {uploadState === 'uploading' ? 'Uploading Video' : 'Processing Video'}
-              </h3>
-              {uploadState === 'uploading' && (
-                <div className="w-full bg-gray-200 dark:bg-dark-600 rounded-full h-2 mb-4">
-                  <motion.div 
-                    className="bg-primary-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${uploadProgress}%` }}
+              {(isComplete || initialVideo) && (
+                <>
+                  <video 
+                    src={initialVideo || processedVideoUrl} 
+                    controls 
+                    className="w-full max-w-3xl rounded shadow-lg mx-auto" 
                   />
-                </div>
-              )}
-              <p className="text-gray-500 dark:text-gray-400">
-                {uploadState === 'uploading' 
-                  ? `Uploading... ${uploadProgress}%`
-                  : 'Running advanced threat detection...'}
-              </p></>)}
-              
-              {uploadState === 'processing' && isComplete && (
-                  <>
-                  <video src={processedVideoUrl} controls className="w-full max-w-3xl rounded shadow-lg mx-auto" />
 
-                  {reportRes && (
+                  {(initialReport || reportRes) && (
                     <div className="mt-6 w-full bg-white dark:bg-dark-700 rounded-lg p-4 shadow flex flex-col gap-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Detection Report</h3>
@@ -247,9 +247,9 @@ const UploadZone: React.FC<UploadZoneProps> = ({ initialVideo, initialReport }) 
                       <div className="w-full overflow-x-auto bg-gray-50 dark:bg-dark-800 rounded p-3 border text-sm text-gray-700 dark:text-gray-200">
                         <pre className="whitespace-pre-wrap break-words">
                           <code>
-                            {typeof reportRes.detection_json === 'string'
-                              ? reportRes.detection_json
-                              : JSON.stringify(reportRes.detection_json, null, 2)}
+                            {typeof (initialReport || reportRes).detection_json === 'string'
+                              ? (initialReport || reportRes).detection_json
+                              : JSON.stringify((initialReport || reportRes).detection_json, null, 2)}
                           </code>
                         </pre>
                       </div>
