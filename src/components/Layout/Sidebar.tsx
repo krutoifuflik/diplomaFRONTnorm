@@ -1,13 +1,46 @@
 import React from 'react';
+import { useVideoHistory } from '../../hooks/useVideoHistory';
+import { formatFileSize } from '../../utils/validation';
+import { Clock, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { videoService } from '../../services/videoService';
+import { toast } from 'react-hot-toast';
 
-const historyData = [
-  { id: 1, title: "Видео от 21.05.2025", status: "Обработано", date: "21 мая 2025" },
-  { id: 2, title: "Видео от 20.05.2025", status: "В обработке", date: "20 мая 2025" },
-  { id: 3, title: "Видео от 19.05.2025", status: "Ошибка", date: "19 мая 2025" },
-  // Добавь свои данные здесь
-];
+interface SidebarProps {
+  onVideoSelect?: (videoUrl: string, reportData: any) => void;
+}
 
-const Sidebar: React.FC = () => {
+const Sidebar: React.FC<SidebarProps> = ({ onVideoSelect }) => {
+  const { videos, loading, error } = useVideoHistory();
+
+  const handleVideoClick = async (videoId: string, videoTitle: string) => {
+    try {
+      const [videoBlob, reportData] = await Promise.all([
+        videoService.getProcessedVideo(videoId, videoTitle),
+        videoService.getVideoReport(videoId)
+      ]);
+
+      const videoUrl = URL.createObjectURL(videoBlob);
+      onVideoSelect?.(videoUrl, reportData);
+      toast.success('Video loaded successfully');
+    } catch (err) {
+      toast.error('Failed to load video');
+    }
+  };
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle className="h-4 w-4 text-success" />;
+      case 'processing':
+        return <Loader className="h-4 w-4 text-warning animate-spin" />;
+      case 'error':
+        return <AlertCircle className="h-4 w-4 text-danger" />;
+      default:
+        return <Clock className="h-4 w-4 text-gray-400" />;
+    }
+  };
+
   return (
     <div className="w-64 border-r border-gray-200 dark:border-dark-600 h-full flex flex-col bg-gray-50 dark:bg-dark-800">
       <div className="p-6 border-b border-gray-200 dark:border-dark-600">
@@ -19,28 +52,56 @@ const Sidebar: React.FC = () => {
         </p>
       </div>
 
-      {/* История загрузок */}
       <div className="flex-1 overflow-y-auto p-4">
-        <h2 className="text-gray-700 dark:text-gray-300 font-semibold mb-3">History</h2>
-        <ul>
-          {historyData.map(item => (
-            <li
-              key={item.id}
-              className="mb-3 p-3 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-dark-600 transition"
-              title={`Статус: ${item.status}`}
-            >
-              <p className="text-sm font-medium text-gray-800 dark:text-gray-100">{item.title}</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">{item.date}</p>
-              <p className={`text-xs mt-1 ${
-                item.status === "Обработано" ? "text-green-600 dark:text-green-400" :
-                item.status === "В обработке" ? "text-yellow-600 dark:text-yellow-400" :
-                "text-red-600 dark:text-red-400"
-              }`}>
-                {item.status}
-              </p>
-            </li>
-          ))}
-        </ul>
+        <h2 className="text-gray-700 dark:text-gray-300 font-semibold mb-3 flex items-center">
+          <Clock className="h-4 w-4 mr-2" />
+          Processing History
+        </h2>
+
+        {loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader className="h-6 w-6 text-primary-500 animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-8 text-danger">
+            <AlertCircle className="h-8 w-8 mx-auto mb-2" />
+            <p>{error}</p>
+          </div>
+        ) : videos.length === 0 ? (
+          <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+            <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+            <p>No processed videos yet</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {videos.map((video) => (
+              <motion.button
+                key={video.id}
+                onClick={() => handleVideoClick(video.id, video.title)}
+                className="w-full p-3 rounded-lg bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 
+                          transition-colors duration-200 shadow-sm group"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 text-left">
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100 truncate group-hover:text-primary-500">
+                      {video.title}
+                    </h3>
+                    <div className="mt-1 flex items-center text-xs text-gray-500 dark:text-gray-400">
+                      {getStatusIcon(video.status)}
+                      <span className="ml-1.5">{new Date(video.uploadDate).toLocaleDateString()}</span>
+                      <span className="mx-1">•</span>
+                      <span>{formatFileSize(video.fileSize)}</span>
+                    </div>
+                  </div>
+                </div>
+              </motion.button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
