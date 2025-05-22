@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { RefreshCw, Trash2, Download, AlertCircle } from 'lucide-react';
+import { RefreshCw, Trash2, Download, AlertCircle, Loader } from 'lucide-react';
 import { api } from '../../config/axios';
 import { Video } from '../../types/video';
 import { formatDuration } from '../../utils/validation';
 import { toast } from 'react-hot-toast';
+import { videoService } from '../../services/videoService';
 
 const Videos: React.FC = () => {
   const [videos, setVideos] = useState<Video[]>([]);
@@ -13,7 +14,7 @@ const Videos: React.FC = () => {
   const fetchVideos = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/videos');
+      const response = await api.get('/dashboard/videos');
       
       // Transform the raw API data into our Video type
       const transformedVideos = response.data.map((video: any) => ({
@@ -58,8 +59,9 @@ const Videos: React.FC = () => {
 
   const handleDownloadReport = async (videoId: string, videoTitle: string) => {
     try {
-      const response = await api.get(`/videos/${videoId}/report`);
-      const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
+      const report = await videoService.getVideoReport(videoId);
+      const jsonString = JSON.stringify(report.detection_json, null, 2);
+      const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       
       const a = document.createElement('a');
@@ -77,16 +79,34 @@ const Videos: React.FC = () => {
     }
   };
 
+  const handleUpdate = async () => {
+    try {
+      // Refresh the token
+      const response = await api.post('/auth/refresh');
+      const { token } = response.data;
+      
+      // Update the token in localStorage and axios headers
+      localStorage.setItem('auth_token', token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      // Refetch videos with new token
+      await fetchVideos();
+      toast.success('Videos updated successfully');
+    } catch (err) {
+      toast.error('Failed to update videos');
+    }
+  };
+
   return (
     <div>
       <div className="mb-6">
         <button
-          onClick={fetchVideos}
+          onClick={handleUpdate}
           disabled={loading}
           className="flex items-center gap-2 px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors disabled:opacity-50"
         >
           <RefreshCw className={`h-5 w-5 ${loading ? 'animate-spin' : ''}`} />
-          {loading ? 'Loading...' : 'Load Videos'}
+          {loading ? 'Loading...' : 'Update Videos'}
         </button>
       </div>
 
@@ -99,9 +119,6 @@ const Videos: React.FC = () => {
               </th>
               <th scope="col" className="w-24 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Duration
-              </th>
-              <th scope="col" className="w-32 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
               </th>
               <th scope="col" className="w-32 px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Upload Date
@@ -126,17 +143,6 @@ const Videos: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {formatDuration(video.duration)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      video.status === 'completed' 
-                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                        : video.status === 'error'
-                        ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
-                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                    }`}>
-                      {video.status}
-                    </span>
-                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                     {new Date(video.uploadDate).toLocaleDateString()}
                   </td>
@@ -144,15 +150,14 @@ const Videos: React.FC = () => {
                     <div className="flex items-center space-x-3">
                       <button
                         onClick={() => handleDownloadReport(video.id, video.title)}
-                        disabled={video.status !== 'completed'}
-                        className="text-gray-600 hover:text-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                        title={video.status !== 'completed' ? 'Processing not complete' : 'Download Report'}
+                        className="text-gray-600 hover:text-primary-500 transition-colors"
+                        title="Download Report"
                       >
                         <Download className="h-5 w-5" />
                       </button>
                       <button
                         onClick={() => handleDelete(video.id)}
-                        className="text-gray-600 hover:text-red-500"
+                        className="text-gray-600 hover:text-red-500 transition-colors"
                         title="Delete Video"
                       >
                         <Trash2 className="h-5 w-5" />
@@ -165,8 +170,17 @@ const Videos: React.FC = () => {
               <tr>
                 <td colSpan={5} className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
                   <div className="flex flex-col items-center">
-                    <AlertCircle className="h-8 w-8 mb-2 opacity-50" />
-                    <p>{loading ? 'Loading videos...' : 'No videos found'}</p>
+                    {loading ? (
+                      <>
+                        <Loader className="h-8 w-8 mb-2 animate-spin" />
+                        <p>Loading videos...</p>
+                      </>
+                    ) : (
+                      <>
+                        <AlertCircle className="h-8 w-8 mb-2 opacity-50" />
+                        <p>No videos found</p>
+                      </>
+                    )}
                   </div>
                 </td>
               </tr>
