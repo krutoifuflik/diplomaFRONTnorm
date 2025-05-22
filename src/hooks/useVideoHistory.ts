@@ -11,7 +11,7 @@ export const useVideoHistory = () => {
     try {
       setLoading(true);
       const response = await api.get('/videos');
-      setVideos(response.data.filter((video: Video) => video.status === 'completed'));
+      setVideos(response.data);
       setError(null);
     } catch (err) {
       setError('Failed to load video history');
