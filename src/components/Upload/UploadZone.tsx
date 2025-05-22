@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import { Upload, AlertCircle, Shield, Play } from 'lucide-react';
@@ -8,25 +8,39 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
-const UploadZone: React.FC = () => {
+interface UploadZoneProps {
+  initialVideo?: string;
+  initialReport?: any;
+}
+
+const UploadZone: React.FC<UploadZoneProps> = ({ initialVideo, initialReport }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadState, setUploadState] = useState<'idle' | 'validating' | 'uploading' | 'processing' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(initialVideo || null);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
+  const [reportRes, setReportRes] = useState<any>(null);
   const navigate = useNavigate();
 
-  const { isComplete, processedVideoUrl, reportUrl, reportRes } = useWebSocket(currentVideoId || '', () => {
+  const { isComplete, processedVideoUrl, reportUrl, reportRes: wsReportRes } = useWebSocket(currentVideoId || '', () => {
     if (currentVideoId && processedVideoUrl) {
       navigate(`/${currentVideoId}/processed`);
     }
   });
 
+  useEffect(() => {
+    if (initialVideo && initialReport) {
+      setPreviewUrl(initialVideo);
+      setUploadState('processing');
+      setTimeout(() => {
+        setCurrentVideoId('loaded');
+        setReportRes(initialReport);
+      }, 500);
+    }
+  }, [initialVideo, initialReport]);
 
-  console.log("YAYAYAYAYAYA:", reportRes)
-  
-
+  console.log("YAYAYAYAYAYA:", reportRes);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
