@@ -60,7 +60,7 @@ const Videos: React.FC = () => {
   const handleDownloadReport = async (videoId: string, videoTitle: string) => {
     try {
       const report = await videoService.getVideoReport(videoId);
-      const jsonString = JSON.stringify(report.detection_json, null, 2);
+      const jsonString = JSON.stringify(report, null, 2);
       const blob = new Blob([jsonString], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       
@@ -96,6 +96,10 @@ const Videos: React.FC = () => {
       toast.error('Failed to update videos');
     }
   };
+
+  useEffect(() => {
+    fetchVideos();
+  }, []);
 
   return (
     <div>
