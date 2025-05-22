@@ -10,7 +10,7 @@ export const useVideoHistory = () => {
   const fetchVideos = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/videos');
+      const response = await api.get('/dashboard/videos');
       
       // Transform the raw API data into our Video type
       const transformedVideos = response.data.map((video: any) => ({
