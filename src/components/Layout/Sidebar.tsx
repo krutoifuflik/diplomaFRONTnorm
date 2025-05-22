@@ -1,16 +1,17 @@
 import React from 'react';
 import { useVideoHistory } from '../../hooks/useVideoHistory';
-import { Clock, AlertCircle, Loader } from 'lucide-react';
+import { Clock, AlertCircle, Loader, RefreshCw } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { videoService } from '../../services/videoService';
 import { toast } from 'react-hot-toast';
+import { api } from '../../config/axios';
 
 interface SidebarProps {
   onVideoSelect?: (videoUrl: string, reportData: any) => void;
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ onVideoSelect }) => {
-  const { videos, loading, error } = useVideoHistory();
+  const { videos, loading, error, refetch } = useVideoHistory();
 
   const handleVideoClick = async (videoId: string, videoTitle: string) => {
     try {
@@ -27,6 +28,24 @@ const Sidebar: React.FC<SidebarProps> = ({ onVideoSelect }) => {
     }
   };
 
+  const handleUpdate = async () => {
+    try {
+      // Refresh the token
+      const response = await api.post('/auth/refresh');
+      const { token } = response.data;
+      
+      // Update the token in localStorage and axios headers
+      localStorage.setItem('auth_token', token);
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      
+      // Refetch videos with new token
+      await refetch();
+      toast.success('History updated successfully');
+    } catch (err) {
+      toast.error('Failed to update history');
+    }
+  };
+
   return (
     <div className="w-64 border-r border-gray-200 dark:border-dark-600 h-full flex flex-col bg-gray-50 dark:bg-dark-800">
       <div className="p-6 border-b border-gray-200 dark:border-dark-600">
@@ -39,10 +58,20 @@ const Sidebar: React.FC<SidebarProps> = ({ onVideoSelect }) => {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
-        <h2 className="text-gray-700 dark:text-gray-300 font-semibold mb-3 flex items-center">
-          <Clock className="h-4 w-4 mr-2" />
-          Video History
-        </h2>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-gray-700 dark:text-gray-300 font-semibold flex items-center">
+            <Clock className="h-4 w-4 mr-2" />
+            Video History
+          </h2>
+          <button
+            onClick={handleUpdate}
+            disabled={loading}
+            className="p-1.5 rounded-full hover:bg-gray-200 dark:hover:bg-dark-600 transition-colors disabled:opacity-50"
+            title="Update History"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-8">
