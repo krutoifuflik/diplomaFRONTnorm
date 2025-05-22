@@ -5,7 +5,6 @@ import { Toaster } from 'react-hot-toast';
 import Dashboard from './pages/Dashboard';
 import Admin from './pages/Admin';
 import Login from './pages/Login';
-import Results from './pages/Results';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { HealthIndicator } from './components/Status/HealthIndicator';
 
@@ -51,15 +50,7 @@ function App() {
                 </PrivateRoute>
               }
             />
-            {/* ✅ Добавлен динамический маршрут */}
-            <Route
-              path="/results/:id"
-              element={
-                <PrivateRoute>
-                  <Results />
-                </PrivateRoute>
-              }
-            />
+          
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
           </Routes>
           <HealthIndicator />
