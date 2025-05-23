@@ -8,9 +8,10 @@ import { api } from '../../config/axios';
 
 interface SidebarProps {
   onVideoSelect?: (videoUrl: string, reportData: any) => void;
+  initialVideo?: string;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onVideoSelect }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onVideoSelect, initialVideo }) => {
   const { videos, loading, error, refetch } = useVideoHistory();
 
   const handleVideoClick = async (videoId: string, videoTitle: string) => {
@@ -93,8 +94,10 @@ const Sidebar: React.FC<SidebarProps> = ({ onVideoSelect }) => {
               <motion.button
                 key={video.id}
                 onClick={() => handleVideoClick(video.id, video.title)}
-                className="w-full p-3 rounded-lg bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 
-                          transition-colors duration-200 shadow-sm group"
+                className={`w-full p-3 rounded-lg bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-dark-600 
+                          transition-colors duration-200 shadow-sm group ${
+                            initialVideo === video.url ? 'ring-2 ring-primary-500' : ''
+                          }`}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 whileHover={{ scale: 1.02 }}
