@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import UploadZone from '../Upload/UploadZone';
 
 interface MainContentProps {
