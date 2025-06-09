@@ -13,7 +13,7 @@ const Videos: React.FC = () => {
   const fetchVideos = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/videos');
+      const response = await api.get('/dashboard/videos');
       
       // Transform the raw API data into our Video type
       const transformedVideos = response.data.map((video: any) => ({
@@ -47,7 +47,7 @@ const Videos: React.FC = () => {
     }
 
     try {
-      await api.delete(`/videos/${videoId}`);
+      await api.delete(`/dashboard/videos/${videoId}`);
       setVideos(videos.filter(video => video.id !== videoId));
       toast.success('Video deleted successfully');
     } catch (error) {
@@ -58,7 +58,7 @@ const Videos: React.FC = () => {
 
   const handleDownloadReport = async (videoId: string, videoTitle: string) => {
     try {
-      const response = await api.get(`/videos/${videoId}/report`);
+      const response = await api.get(`/dashboard/videos/${videoId}/report`);
       const blob = new Blob([JSON.stringify(response.data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       

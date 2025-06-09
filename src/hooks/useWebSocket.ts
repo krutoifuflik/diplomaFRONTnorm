@@ -19,7 +19,7 @@ export const useWebSocket = (videoId: string, onComplete?: () => void) => {
 
     ws.addEventListener('message', async ({ data }) => {
       const { status, message } = JSON.parse(data);
-      if ((status === 'completed' || message === 'complete.') && !isComplete) {
+      if ((status === 'completed' || message === 'completed') && !isComplete) {
         setIsComplete(true);
         // small delay if you need
         await new Promise(r => setTimeout(r, 500));

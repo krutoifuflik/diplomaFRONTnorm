@@ -65,7 +65,7 @@ export const videoService = {
       const videoData = {
         id: videoInfo.id,
         title: videoInfo.original_filename || file.name,
-        url: `${api.defaults.baseURL}/videos/${videoInfo.id}/processed`,
+        url: `${api.defaults.baseURL}/dashboard/videos/${videoInfo.id}/processed`,
         thumbnail: '',
         uploadDate: new Date(),
         duration: 0,
@@ -92,7 +92,7 @@ export const videoService = {
   },
 
   async getProcessedVideo(id: string, title: string): Promise<Blob> {
-    const endpoint = `/videos/${id}/processed`;
+    const endpoint = `/dashboard/videos/${id}/processed`;
     const fullUrl = `${api.defaults.baseURL}${endpoint}`;
     console.log('[API] Sending GET request', {
       method: 'GET',
@@ -184,7 +184,7 @@ export const videoService = {
   async getVideoReport(id: string): Promise<Detection[]> {
     console.log('[API] Fetching video report', {
       method: 'GET',
-      endpoint: `/videos/${id}/report`
+      endpoint: `/dashboard/videos/${id}/report`
     });
 
     if (!id) {
@@ -193,7 +193,7 @@ export const videoService = {
     }
 
     try {
-      const response = await api.get<Detection[]>(`/videos/${id}/report`, {
+      const response = await api.get<Detection[]>(`/dashboard/videos/${id}/report`, {
        
       });
 

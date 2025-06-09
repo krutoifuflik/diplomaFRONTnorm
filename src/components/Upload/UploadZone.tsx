@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion } from 'framer-motion';
 import { Upload, AlertCircle, Shield, Play } from 'lucide-react';
@@ -8,7 +8,16 @@ import { useWebSocket } from '../../hooks/useWebSocket';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
-const UploadZone: React.FC = () => {
+
+
+interface UploadZoneProps {
+  initialVideo?: string;
+  initialReport?: any;
+  initialReportUrl?: string;
+}
+
+
+const UploadZone: React.FC<UploadZoneProps> = ({ initialVideo, initialReport, initialReportUrl }) => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadState, setUploadState] = useState<'idle' | 'validating' | 'uploading' | 'processing' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
@@ -16,17 +25,22 @@ const UploadZone: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [currentVideoId, setCurrentVideoId] = useState<string | null>(null);
   const navigate = useNavigate();
+  
 
   const { isComplete, processedVideoUrl, reportUrl, reportRes } = useWebSocket(currentVideoId || '', () => {
     if (currentVideoId && processedVideoUrl) {
-      navigate(`/${currentVideoId}/processed`);
+      navigate(`/dashboard/${currentVideoId}/processed`);
     }
   });
+  const downloadLink = reportUrl || initialReportUrl || '#';
 
-
-  console.log("YAYAYAYAYAYA:", reportRes)
-  
-
+  useEffect(() => {
+    if (initialVideo && initialReport) {
+      setPreviewUrl(initialVideo);
+      setUploadState('processing');
+      setSelectedFile(null);
+    }
+  }, [initialVideo, initialReport]);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
@@ -89,7 +103,7 @@ const UploadZone: React.FC = () => {
   });
 
   const resetUpload = () => {
-    if (previewUrl) {
+    if (previewUrl && !initialVideo) {
       URL.revokeObjectURL(previewUrl);
     }
     setUploadState('idle');
@@ -189,41 +203,47 @@ const UploadZone: React.FC = () => {
 
           {(uploadState === 'uploading' || uploadState === 'processing') && (
             <div className="text-center">
+              {!isComplete && !initialVideo && (<>
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="animate-spin h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"
+                />
+                <h3 className="text-xl font-semibold mb-2">
+                  {uploadState === 'uploading' ? 'Uploading Video' : 'Processing Video'}
+                </h3>
+                {uploadState === 'uploading' && (
+                  <div className="w-full bg-gray-200 dark:bg-dark-600 rounded-full h-2 mb-4">
+                    <motion.div 
+                      className="bg-primary-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: `${uploadProgress}%` }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                )}
+                <p className="text-gray-500 dark:text-gray-400">
+                  {uploadState === 'uploading' 
+                    ? `Uploading... ${uploadProgress}%`
+                    : 'Running advanced threat detection...'}
+                </p>
+              </>)}
               
-              {!isComplete && (<><motion.div 
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="animate-spin h-12 w-12 border-4 border-primary-500 border-t-transparent rounded-full mx-auto mb-4"
-              /><h3 className="text-xl font-semibold mb-2">
-                {uploadState === 'uploading' ? 'Uploading Video' : 'Processing Video'}
-              </h3>
-              {uploadState === 'uploading' && (
-                <div className="w-full bg-gray-200 dark:bg-dark-600 rounded-full h-2 mb-4">
-                  <motion.div 
-                    className="bg-primary-500 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${uploadProgress}%` }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${uploadProgress}%` }}
+              {(isComplete || initialVideo) && (
+                <>
+                  <video 
+                    src={initialVideo || processedVideoUrl} 
+                    controls 
+                    className="w-full max-w-3xl rounded shadow-lg mx-auto" 
                   />
-                </div>
-              )}
-              <p className="text-gray-500 dark:text-gray-400">
-                {uploadState === 'uploading' 
-                  ? `Uploading... ${uploadProgress}%`
-                  : 'Running advanced threat detection...'}
-              </p></>)}
-              
-              {uploadState === 'processing' && isComplete && (
-                  <>
-                  <video src={processedVideoUrl} controls className="w-full max-w-3xl rounded shadow-lg mx-auto" />
 
-                  {reportRes && (
+                  {(initialReport || initialReportUrl || reportRes) && (
                     <div className="mt-6 w-full bg-white dark:bg-dark-700 rounded-lg p-4 shadow flex flex-col gap-4">
                       <div className="flex items-center justify-between">
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Detection Report</h3>
                         <a
-                          download
-                          href={reportUrl}
+                          download={`report_${currentVideoId || 'file'}.json`}
+                          href={downloadLink}
                           className="bg-primary-500 text-white px-4 py-1.5 rounded hover:bg-primary-600 transition-colors text-sm font-medium"
                         >
                           Download Report
@@ -233,9 +253,9 @@ const UploadZone: React.FC = () => {
                       <div className="w-full overflow-x-auto bg-gray-50 dark:bg-dark-800 rounded p-3 border text-sm text-gray-700 dark:text-gray-200">
                         <pre className="whitespace-pre-wrap break-words">
                           <code>
-                            {typeof reportRes.detection_json === 'string'
-                              ? reportRes.detection_json
-                              : JSON.stringify(reportRes.detection_json, null, 2)}
+                            {typeof (initialReport || reportRes).detection_json === 'string'
+                              ? (initialReport || reportRes).detection_json
+                              : JSON.stringify((initialReport || reportRes).detection_json, null, 2)}
                           </code>
                         </pre>
                       </div>

@@ -12,7 +12,7 @@ export const HealthIndicator: React.FC = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="fixed bottom-4 left-4 z-50"
+      className="fixed bottom-4 right-4 z-50"
     >
       <div className={cn(
         "flex items-center gap-2 px-3 py-2 rounded-full",
@@ -22,12 +22,12 @@ export const HealthIndicator: React.FC = () => {
         {isHealthy ? (
           <>
             <Wifi className="h-4 w-4 text-success" />
-            <span className="text-sm text-success">Connected</span>
+            
           </>
         ) : (
           <>
             <WifiOff className="h-4 w-4 text-danger" />
-            <span className="text-sm text-danger">Server Offline</span>
+            
           </>
         )}
       </div>
